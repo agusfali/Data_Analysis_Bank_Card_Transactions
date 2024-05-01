@@ -1,0 +1,22 @@
+with
+all_data as(
+SELECT *
+FROM `spring-forest-404213.Xapo.all_data_mcc`
+where transaction_id is not null
+)
+
+
+, user_purchases as(
+SELECT *, row_number() over (partition by customer_id order by trans_date) as transac_number
+FROM all_data
+)
+
+
+SELECT *
+FROM user_purchases
+where transac_number=1
+
+
+
+
+
