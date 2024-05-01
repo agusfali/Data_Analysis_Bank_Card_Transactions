@@ -1,0 +1,69 @@
+with
+
+
+users_por_pais as (
+select residence_country, count (distinct customer_id) as cant_total
+FROM
+  spring-forest-404213.Xapo.customers
+group by residence_country
+order by cant_total desc
+)
+
+
+
+
+,tiene_tarjeta_por_pais as (
+select residence_country, count (distinct a.customer_id) as cant_tarjeta
+FROM
+  spring-forest-404213.Xapo.customers as a join spring-forest-404213.Xapo.cards as b
+   ON a.customer_id = b.customer_id
+group by residence_country
+order by cant_tarjeta desc
+)
+
+
+
+
+, pct_card_country as (
+Select b.residence_country, cant_tarjeta, round(cant_tarjeta/cant_total,2) as pct_card
+FROM tiene_tarjeta_por_pais as a join users_por_pais as b
+  on a.residence_country=b.residence_country
+order by pct_card desc
+)
+
+
+
+
+, transac_por_pais as (
+select residence_country, count (distinct a.customer_id) as cant_trans
+FROM  spring-forest-404213.Xapo.customers as a
+         join spring-forest-404213.Xapo.cards as b
+          ON a.customer_id = b.customer_id
+           join spring-forest-404213.Xapo.card_transactions as c
+              ON b.card_id = c.card_id
+group by residence_country
+order by cant_trans desc
+)
+
+
+, pct_trans_country as (
+Select b.residence_country, cant_trans, round(cant_trans/cant_total,2) as pct_trans
+FROM transac_por_pais as a join users_por_pais as b
+  on a.residence_country=b.residence_country
+order by pct_trans desc
+)
+
+
+
+
+select a.residence_country, cant_tarjeta, pct_card, cant_trans, pct_trans, cant_credit,credit_pct
+from pct_card_country as a
+  join pct_trans_country as b
+    on a.residence_country=b.residence_country
+      join spring-forest-404213.Xapo.credit_cards_country as c
+        on a.residence_country=c.residence_country  
+
+
+
+
+
