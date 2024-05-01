@@ -1,0 +1,110 @@
+with
+rfm_data as(
+SELECT a.customer_id, b.card_id, c.transaction_id, c.created_at, c.amount_usd *-1 as Spent
+FROM
+  spring-forest-404213.Xapo.customers as a
+    join spring-forest-404213.Xapo.cards as b
+    ON a.customer_id = b.customer_id
+        join spring-forest-404213.Xapo.card_transactions as c
+        ON b.card_id = c.card_id
+ )
+
+
+
+
+ ,RFM AS(
+    SELECT
+        customer_id,
+        MAX(created_at) as Last_order_date,
+        (select MAX(created_at) from rfm_data) as Max_Transaction_Date,
+        date_diff(MAX(created_at),(select MAX(created_at) from rfm_data),DAY) as Recency,
+        COUNT(transaction_id)as Frequency,
+        round(SUM(Spent),2) as MonetaryValue
+    FROM rfm_data
+    GROUP BY customer_id
+)
+
+
+,rfm_calc AS(
+    SELECT r.*,
+        NTILE(5) OVER (ORDER BY Recency) as rfm_recency,
+        NTILE(5) OVER (ORDER BY Frequency) as rfm_frequency,
+        NTILE(5) OVER (ORDER BY MonetaryValue) as rfm_monetary
+
+
+    FROM RFM r
+)
+
+
+
+
+,rfm_2 AS(
+SELECT *,
+  CASE
+    WHEN rfm_recency >= 4 AND rfm_frequency >= 4 AND rfm_monetary >= 4 THEN "Best"
+    WHEN rfm_recency >1 AND rfm_monetary >= 4 THEN "High Value"
+    WHEN rfm_recency > 1 AND rfm_frequency >= 3  THEN "Loyal"
+    WHEN rfm_recency >= 4 THEN "New"
+    WHEN rfm_recency <= 1 THEN "Churning"
+    ELSE "Customer"
+  END AS rfm_segment
+
+
+FROM rfm_calc
+)
+
+
+
+
+
+
+SELECT *
+FROM spring-forest-404213.Xapo.all_data_mcc as a
+join rfm_2 as b
+  on a.customer_id=b.customer_id
+
+
+
+
+
+
+-- Best customer by country
+
+with best_cust as (
+SELECT residence_country,
+        count(distinct customer_id) as segment_users,
+FROM spring-forest-404213.xapo_2.RFM
+where rfm_segment="Best"
+group by residence_country
+
+
+)
+
+
+, pct_seg as (
+SELECT residence_country,segment_users, segment_users/(SELECT sum(segment_users)from best_cust) as pct_segment
+FROM best_cust
+)
+
+
+,users_totales_pct as (
+select residence_country, Unique_customers as total_users, Unique_customers/(select sum(Unique_customers) from spring-forest-404213.xapo_2.metricas_pais) as pct_total
+from spring-forest-404213.xapo_2.metricas_pais
+)
+
+
+
+
+,segment_totales_pct as (
+select a.residence_country,segment_users, pct_segment,total_users,pct_total, pct_segment-pct_total as diff
+from pct_seg as a
+  join users_totales_pct as b
+    on a.residence_country=b.residence_country
+)
+
+
+select *
+from segment_totales_pct
+  join spring-forest-404213.Xapo.Country_names_2
+    on residence_country=alpha_2
+
