@@ -1,0 +1,42 @@
+with top10pct as (
+SELECT residence_country,
+        count(distinct customer_id) as segment_users,
+FROM `spring-forest-404213.xapo_2.all_data_whale`
+where whale_segment="Top 1% - grand whales" OR whale_segment= "2-10% - Whales"
+group by residence_country
+
+
+)
+
+
+, pct_seg as (
+SELECT residence_country,segment_users, segment_users/(SELECT sum(segment_users)from top10pct) as pct_segment
+FROM top10pct
+)
+
+
+,users_totales_pct as (
+select residence_country, Unique_customers as total_users, Unique_customers/(select sum(Unique_customers) from spring-forest-404213.xapo_2.metricas_pais) as pct_total
+from spring-forest-404213.xapo_2.metricas_pais
+)
+
+
+
+
+,segment_totales_pct as (
+select a.residence_country,segment_users, pct_segment,total_users,pct_total, pct_segment-pct_total as diff
+from pct_seg as a
+  join users_totales_pct as b
+    on a.residence_country=b.residence_country
+)
+
+
+select *
+from segment_totales_pct
+  join spring-forest-404213.Xapo.Country_names_2
+    on residence_country=alpha_2
+
+
+
+
+
