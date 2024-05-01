@@ -1,0 +1,34 @@
+with users_before_feb as (
+select a.customer_id, a.creation_date as account_date, card_id, b.creation_date as card_date
+from spring-forest-404213.Xapo.customers as a
+  join spring-forest-404213.Xapo.cards as b
+    on a.customer_id=b.customer_id
+where a.creation_date<"2023-02-28"
+)
+
+
+, date_min as (
+select customer_id, account_date, min (card_date) as min_card,
+from users_before_feb
+group by customer_id, account_date
+)
+
+
+, days_before_card as (
+select customer_id,account_date, min_card, date_diff(min_card, account_date, day) as days_before
+from date_min
+
+
+)
+
+
+
+
+select count(distinct customer_id) as users_had_card_before,round(count(distinct customer_id)/(select count(distinct customer_id) from days_before_card),2) as pct
+from days_before_card
+where days_before<0
+
+
+
+
+
