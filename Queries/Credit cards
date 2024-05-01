@@ -1,0 +1,40 @@
+with country_users as (
+select residence_country, count(distinct a.customer_id) as cant_users
+FROM
+  spring-forest-404213.Xapo.customers as a join spring-forest-404213.Xapo.cards as b
+   ON a.customer_id = b.customer_id
+group by residence_country
+
+
+)
+
+
+,credit_cards as(
+select residence_country, type, count(distinct a.customer_id) as cant_credit
+FROM
+  spring-forest-404213.Xapo.customers as a join spring-forest-404213.Xapo.cards as b
+   ON a.customer_id = b.customer_id
+where type="credit"
+group by residence_country, type
+
+
+)
+
+
+,credit as (
+select a.residence_country, cant_users, cant_credit, cant_credit/cant_users as credit_pct
+from country_users as a join credit_cards as b
+  on a.residence_country = b.residence_country
+order by credit_pct desc
+)
+
+
+select residence_country, cant_credit, credit_pct
+from credit join spring-forest-404213.Xapo.Country_name
+  on residence_country = alpha_2
+order by credit_pct desc
+
+
+
+
+
