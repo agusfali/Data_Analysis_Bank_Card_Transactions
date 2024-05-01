@@ -1,0 +1,122 @@
+
+
+-- cards by user
+
+
+SELECT a.customer_id,count(distinct b.card_id) as cards,
+FROM spring-forest-404213.Xapo.customers as a left join spring-forest-404213.Xapo.cards as b
+   ON a.customer_id = b.customer_id
+group by a.customer_id
+
+
+
+
+-- cards order
+SELECT 
+a.customer_id, b.card_id, b.creation_date as card_date, b.type, b.subtype, b.status, b.currency,b.activation_date, b.closure_date, b.paused, 
+row_number() over (partition by a.customer_id order by b.creation_date) as card_rank
+FROM 
+spring-forest-404213.Xapo.customers as a 
+join spring-forest-404213.Xapo.cards as b
+   ON a.customer_id = b.customer_id
+order by a.customer_id, card_rank
+
+
+
+
+-- time to activate
+SELECT 
+*, 
+date_diff(activation_date,creation_date,DAY) as days_to_activate
+FROM spring-forest-404213.Xapo.cards
+
+
+
+
+-- tiempo hasta usar
+with card_days_to_use as (
+SELECT 
+distinct b.card_id as unique_card_id,
+creation_date, min(date(created_at)) as first_use
+FROM
+  spring-forest-404213.Xapo.cards as b
+   join spring-forest-404213.Xapo.card_transactions as c
+     ON b.card_id = c.card_id
+group by unique_card_id, creation_date
+
+
+)
+
+
+SELECT
+*,
+date_diff(first_use,creation_date, DAY)
+from card_days_to_use
+
+
+
+
+
+
+-- has card or transaction
+
+
+with has_card as(
+select distinct a.customer_id,
+  case
+  when card_id is null then "No"
+  when card_id is not null then "Yes"
+  End
+  as has_card
+FROM spring-forest-404213.Xapo.customers as a
+    left join spring-forest-404213.Xapo.cards as b
+      on a.customer_id = b.customer_id
+)
+
+
+,trans_user as(
+select 
+distinct a.customer_id as unique_customer,
+count(transaction_id) as trans
+FROM spring-forest-404213.Xapo.customers as a
+    left join spring-forest-404213.Xapo.cards as b
+      on a.customer_id = b.customer_id
+         left join spring-forest-404213.Xapo.card_transactions as c
+           ON b.card_id = c.card_id
+group by unique_customer
+)
+
+
+, made_trans as (
+select unique_customer, trans
+,case
+  when trans >=1 then "Yes"
+  when trans =0 then "No"
+  End
+  as made_transaction
+from trans_user
+
+
+)
+
+
+, has_purchase as (
+select unique_customer, made_transaction
+from made_trans
+
+
+)
+
+
+select a.customer_id, has_card, made_transaction,creation_date, residence_country, passport_country, date_of_birth,gender,occupation,annual_income,name, region, sub_region
+from has_card as a join has_purchase as b
+  on customer_id=unique_customer
+    join spring-forest-404213.Xapo.customers as c
+      on a.customer_id=c.customer_id
+        left join spring-forest-404213.Xapo.Country_name as e
+            on residence_country = alpha_2
+
+
+
+
+
