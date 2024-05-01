@@ -1,0 +1,83 @@
+with cohort_data as (
+  select customer_id, transaction_id,trans_date, date(trans_date) as date_trans, date_trunc(date(trans_date), MONTH) as trans_month, amount_usd *-1 as amount_spent
+  from spring-forest-404213.Xapo.all_data_mcc
+  where transaction_id is not null
+
+
+)
+
+
+, cohort_date as (
+  select customer_id as id_2,min(date_trans) as min_date,date_trunc(min(date_trans), MONTH) as cohort_month
+  from cohort_data  
+  group by customer_id
+
+
+)
+
+
+, joined_data as (
+  select *
+  from cohort_data join cohort_date
+    on customer_id=id_2
+
+
+)
+
+
+, cohort_indexes as (
+  select *,
+          date_diff(trans_month, cohort_month , MONTH) as cohort_index
+  from joined_data
+
+
+)
+
+
+
+
+, chart_data as (
+  select distinct
+    customer_id,
+    cohort_month,
+    cohort_index
+  from cohort_indexes
+ 
+)
+
+
+select cohort_month,cohort_index, count(customer_id) as user_count,
+from chart_data
+group by cohort_month,cohort_index
+order by cohort_month,cohort_index
+
+
+
+
+/*
+, table_amounts as (
+select
+  *
+from (
+ select distinct
+    customer_id,
+    cohort_month,
+    cohort_index
+  from cohort_indexes
+) as t1
+  pivot(
+        count(customer_id)
+        for cohort_index in
+        (0,1,2,3,4,5,6,7,8,9,10,11,12)) as pivot_table
+
+
+order by cohort_month
+
+
+)
+
+
+*/
+
+
+
