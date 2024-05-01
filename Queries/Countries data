@@ -1,0 +1,31 @@
+with all_data as(
+
+
+select
+        Abbreviation, a.Country as Country1,GDP_capita,a.Population as Population ,CPI_Change,Total_tax_rate,
+        name,alpha_2,region,sub_region,
+        c.Country as Country2,Ownership_Percentage,Percent_people_with_bank_accounts,
+        Country_or_area as Country3,Pct as internet_pct
+       
+from
+    spring-forest-404213.Xapo.world_data3 as a
+      full outer join spring-forest-404213.Xapo.Country_names_2 as b
+          on Abbreviation=alpha_2
+              full outer join spring-forest-404213.Xapo.Banking_2 as c
+                  on a.Country=c.Country
+                    full outer join spring-forest-404213.Xapo.Internet_penetration2 as d
+                      on  c.Country=Country_or_area
+
+
+                 
+where Abbreviation is not null
+
+
+)
+
+
+
+
+select *
+from all_data
+
