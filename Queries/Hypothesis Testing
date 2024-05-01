@@ -1,0 +1,88 @@
+-- UK hypothesis testing
+
+
+with gb as (
+select distinct customer_id as user, sum(amount_usd)*-1 as total_spent
+from spring-forest-404213.Xapo.all_data_mcc
+where residence_country="GB"
+group by user
+having total_spent>0
+
+
+)
+
+
+, control1 as (
+select distinct customer_id as user, sum(amount_usd)*-1 as total_spent
+from spring-forest-404213.Xapo.all_data_mcc
+where residence_country!="GB"
+group by user
+having total_spent>0
+
+
+)
+
+
+select avg(total_spent)
+from control1
+
+
+
+
+
+
+-- Brazil hypothesis testing
+
+
+with BR as (
+select distinct customer_id as user, sum(amount_usd)*-1 as total_spent
+from spring-forest-404213.Xapo.all_data_mcc
+where residence_country="BR"
+group by user
+having total_spent>0
+
+
+)
+
+
+, control1 as (
+select distinct customer_id as user, sum(amount_usd)*-1 as total_spent
+from spring-forest-404213.Xapo.all_data_mcc
+where residence_country!="BR"
+group by user
+having total_spent>0
+
+
+)
+
+
+
+
+
+
+-- RFM hypothesis testing
+
+
+
+
+with best as (
+select distinct customer_id as user, sum(amount_usd)*-1 as total_spent
+from spring-forest-404213.xapo_2.RFM
+where rfm_segment="Best"
+group by user
+having total_spent>0
+
+
+)
+
+
+, control1 as (
+select distinct customer_id as user, sum(amount_usd)*-1 as total_spent
+from spring-forest-404213.xapo_2.RFM
+where rfm_segment!="Best"
+group by user
+having total_spent>0
+
+
+)
+
