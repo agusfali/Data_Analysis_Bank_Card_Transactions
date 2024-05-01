@@ -1,0 +1,17 @@
+with
+monthly_users as (
+  SELECT 
+date_trunc(creation_date,MONTH) as Month,
+count(customer_id) as User_count
+  FROM spring-forest-404213.Xapo.customers
+  group by Month
+  order by Month
+)
+
+
+select
+Month, User_count,
+IFNULL(lag(User_count) over (order by Month),0) as last_month   ,coalesce(User_count/lag(User_count) over (order by Month)-1,0) as MoM
+FROM monthly_users
+order by Month
+
