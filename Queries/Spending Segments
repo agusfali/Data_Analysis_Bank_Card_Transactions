@@ -1,0 +1,55 @@
+with
+rfm_data as(
+SELECT a.customer_id, b.card_id, c.transaction_id, c.created_at, c.amount_usd *-1 as Spent
+FROM
+  spring-forest-404213.Xapo.customers as a
+    join spring-forest-404213.Xapo.cards as b
+    ON a.customer_id = b.customer_id
+        join spring-forest-404213.Xapo.card_transactions as c
+        ON b.card_id = c.card_id
+ )
+
+
+
+
+,categories as (
+SELECT
+customer_id,COUNT(transaction_id) as Frequency,SUM(Spent) as MonetaryValue
+FROM rfm_data
+GROUP BY customer_id
+)
+
+
+
+
+,percentiles AS(
+    SELECT *,
+        NTILE(100) OVER (ORDER BY Frequency) as rfm_frequency,
+        NTILE(100) OVER (ORDER BY MonetaryValue) as rfm_monetary
+    FROM categories
+)
+
+
+
+
+, whale_segments as (
+  select *,
+  case
+    when rfm_monetary=100 then "Top 1% - grand whales"
+    when rfm_monetary >= 90 and rfm_monetary <= 99 then "2-10% - Whales"
+    when rfm_monetary >= 75 and rfm_monetary <= 89 then "11-25% - grand dolphins"
+    when rfm_monetary > 40 and rfm_monetary  < 75 then "26-59% - dolphins"
+    when rfm_monetary>= 0 and rfm_monetary <= 40 then "Minnows - bottom 40%"
+    else "null"
+end
+as whale_segment
+
+
+FROM percentiles
+)
+
+
+SELECT *
+FROM spring-forest-404213.Xapo.all_data_mcc as a
+join whale_segments as b
+  on a.customer_id=b.customer_id
