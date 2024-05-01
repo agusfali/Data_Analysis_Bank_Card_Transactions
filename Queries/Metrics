@@ -1,0 +1,38 @@
+with
+all_data as(
+
+
+SELECT a.customer_id, a.creation_date as account_date, a.residence_country, a.passport_country, a.date_of_birth, a.gender,a.occupation,a.annual_income
+       , b.card_id, b.type as card_type, b.subtype, b.status as card_status, b.brand, b.currency as card_currency, b.creation_date as card_date, b.activation_date, b.      
+        closure_date, b.paused
+       , c.transaction_id, c.created_at as trans_date, c.transaction_type, c.status as trans_status, c.payment_method, c.mcc as trans_mcc, amount_usd, c.currency as
+         trans_currency
+       , d.mcc as mcc_index, d.description
+       , name, region, sub_region
+
+
+FROM
+  spring-forest-404213.Xapo.customers as a left join spring-forest-404213.Xapo.cards as b
+   ON a.customer_id = b.customer_id
+    left join spring-forest-404213.Xapo.card_transactions as c
+     ON b.card_id = c.card_id
+      left join spring-forest-404213.Xapo.mcc_codes as d
+        on c.mcc = d.mcc
+          left join spring-forest-404213.Xapo.Country_name as e
+            on a.residence_country = e.alpha_2
+)
+
+
+
+
+      select
+      COUNT (DISTINCT customer_id) as Unique_customers,
+      COUNT (DISTINCT transaction_id) as Unique_transactions,
+sum(amount_usd)*-1) as Amount_Spent,
+      round(count(transaction_id)/COUNT (DISTINCT customer_id),2) as Trans_user,
+      round(sum(amount_usd)/COUNT (DISTINCT transaction_id)*-1 ,2) as Spent_user,
+      round(sum(amount_usd)/count(transaction_id)*-1,2) as AOV
+from all_data
+
+
+
