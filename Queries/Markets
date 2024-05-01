@@ -1,0 +1,108 @@
+with
+rfm_data as(
+SELECT a.customer_id, b.card_id, c.transaction_id, c.created_at, c.amount_usd *-1 as Spent
+FROM
+  spring-forest-404213.Xapo.customers as a
+    join spring-forest-404213.Xapo.cards as b
+    ON a.customer_id = b.customer_id
+        join spring-forest-404213.Xapo.card_transactions as c
+        ON b.card_id = c.card_id
+ )
+
+
+
+
+,categories as (
+SELECT
+customer_id,COUNT(transaction_id) as Frequency,SUM(Spent) as MonetaryValue
+FROM rfm_data
+GROUP BY customer_id
+)
+
+
+,percentiles AS(
+    SELECT *,
+        NTILE(100) OVER (ORDER BY Frequency) as rfm_frequency,
+        NTILE(100) OVER (ORDER BY MonetaryValue) as rfm_monetary
+    FROM categories
+)
+
+
+
+
+,top_1pct AS(
+    SELECT *,
+FROM percentiles
+where rfm_monetary=100
+)
+
+
+
+
+,top_10pct AS(
+   SELECT *,
+FROM percentiles
+where rfm_monetary between 90 and 100
+)
+
+
+
+
+
+
+,all_data as(
+SELECT a.customer_id, a.creation_date, b.card_id, b.currency as card_currency, type, subtype  
+        , c.created_at, c.payment_method, c.amount_usd, c.currency as transac_currency, c.mcc, d.description
+FROM
+  spring-forest-404213.Xapo.customers as a join spring-forest-404213.Xapo.cards as b
+   ON a.customer_id = b.customer_id
+    join spring-forest-404213.Xapo.card_transactions as c
+     ON b.card_id = c.card_id
+      join spring-forest-404213.Xapo.mcc_codes as d
+        on c.mcc = d.mcc
+          join spring-forest-404213.Xapo.Country_name as e on a.residence_country= e.alpha_2
+)
+
+
+
+
+, geo as(
+select a.customer_id, residence_country, name, alpha_2, region, sub_region
+  from spring-forest-404213.Xapo.customers as a join top_10pct as b
+    on a.customer_id = b.customer_id
+      join spring-forest-404213.Xapo.Country_name
+        on residence_country = alpha_2
+)
+
+
+, geo2 as(
+select sub_region, count(customer_id) as users1, round(count(customer_id)/(select count(customer_id) from geo)*100,2) as pct1
+from geo
+group by sub_region
+)
+
+
+,geo_all as (
+select sub_region, count(customer_id) as users2, round(count(customer_id)/(select count(customer_id) from spring-forest-404213.Xapo.customers)*100,2) as pct2
+from spring-forest-404213.Xapo.customers
+      join spring-forest-404213.Xapo.Country_name
+        on residence_country = alpha_2
+group by sub_region
+
+
+)
+
+
+select a.sub_region, users1, pct1,users2, pct2, pct1-pct2 as diff
+from geo2 as a join geo_all as b
+  on a.sub_region = b.sub_region
+order by diff desc
+
+
+
+
+
+
+
+
+
